@@ -50,7 +50,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 		switch buf[0] {
 		case 0:
 			var NodeDetails cluster.ClusterMember
-			nodeDetails := buf[1:]
+			nodeDetails := buf[1:readsize]
 			err := json.Unmarshal([]byte(nodeDetails), &NodeDetails)
 			if err != nil {
 				fmt.Printf("Failed to unmarshal node details: %v\n", err)
