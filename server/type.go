@@ -10,7 +10,7 @@ type Server struct {
 	Host           string
 	Port           string
 	TCPListener    net.Listener
-	SSMu           sync.Mutex
+	SSMu           sync.RWMutex
 	ClusterDetails []*clusters.ClusterConfig
 }
 
@@ -19,6 +19,6 @@ func NewServer(host string, port string) *Server {
 		Host:           host,
 		Port:           port,
 		ClusterDetails: []*clusters.ClusterConfig{},
-		SSMu:           sync.Mutex{},
+		SSMu:           sync.RWMutex{},
 	}
 }

@@ -17,11 +17,12 @@ const (
 )
 
 type ClusterMember struct {
-	NodeType  NODETYPE
-	NodeID    string
-	NodeAddr  string
-	NodePort  string
-	ClusterID string
+	NodeType         NODETYPE
+	NodeID           string
+	NodeAddr         string
+	NodePort         string
+	ClusterID        string
+	MissedHeartbeats int
 }
 
 type ClusterEvent struct {
