@@ -84,7 +84,7 @@ func IdentifyCluster(s *Server, node *cluster.ClusterMember) *cluster.ClusterCon
 		clusterConfig = &cluster.ClusterConfig{
 			ClusterID:        node.ClusterID,
 			ClusterName:      "",
-			ClusterMemList:   make([]*cluster.ClusterMember, 5),
+			ClusterMemList:   make([]*cluster.ClusterMember, 0, 5),
 			BroadCastChannel: make(chan cluster.ClusterEvent),
 		}
 	}
