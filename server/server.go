@@ -6,6 +6,7 @@ import (
 	"go-service-discovery/cluster"
 	"log"
 	"net"
+	"sync"
 )
 
 type EventTYPE int
@@ -57,6 +58,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 				return
 			}
 			clusters := IdentifyCluster(server, &NodeDetails)
+			server.ClusterDetails = append(server.ClusterDetails, clusters)
 			clusters.AddClusterMemberList(NodeDetails)
 			clusters.BroadCastChannel <- *clusters.CreateClusterEvent(0, NodeDetails)
 		}
@@ -74,9 +76,9 @@ func (s *Server) StopServer() error {
 
 func IdentifyCluster(s *Server, node *cluster.ClusterMember) *cluster.ClusterConfig {
 	var clusterConfig *cluster.ClusterConfig = nil
-	for _, cluster := range *s.ClusterDetails {
+	for _, cluster := range s.ClusterDetails {
 		if cluster.ClusterID == node.ClusterID {
-			clusterConfig = &cluster
+			clusterConfig = cluster
 		}
 	}
 
@@ -86,9 +88,10 @@ func IdentifyCluster(s *Server, node *cluster.ClusterMember) *cluster.ClusterCon
 			ClusterName:      "",
 			ClusterMemList:   make([]*cluster.ClusterMember, 0, 5),
 			BroadCastChannel: make(chan cluster.ClusterEvent),
+			Mut:              sync.RWMutex{},
 		}
 	}
-	*s.ClusterDetails = append(*s.ClusterDetails, *clusterConfig)
+	s.ClusterDetails = append(s.ClusterDetails, clusterConfig)
 
 	return clusterConfig
 }

@@ -1,5 +1,7 @@
 package cluster
 
+import "sync"
+
 type NODETYPE int
 
 const (
@@ -22,6 +24,7 @@ type ClusterConfig struct {
 	ClusterID        string
 	TotalSize        int
 	BroadCastChannel chan ClusterEvent
+	Mut              sync.RWMutex
 }
 
 func NewClusterMember(nodeType string, nodeID string, nodeAddr string, nodePort string) *ClusterMember {

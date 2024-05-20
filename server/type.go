@@ -9,13 +9,13 @@ type Server struct {
 	Host           string
 	Port           string
 	TCPListener    net.Listener
-	ClusterDetails *[]clusters.ClusterConfig
+	ClusterDetails []*clusters.ClusterConfig
 }
 
 func NewServer(host string, port string) *Server {
 	return &Server{
 		Host:           host,
 		Port:           port,
-		ClusterDetails: &[]clusters.ClusterConfig{},
+		ClusterDetails: []*clusters.ClusterConfig{},
 	}
 }
