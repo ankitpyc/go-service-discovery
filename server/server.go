@@ -58,9 +58,10 @@ func (server *Server) handleConnection(conn net.Conn) {
 				return
 			}
 			clusters := IdentifyCluster(server, &NodeDetails)
-			server.ClusterDetails = append(server.ClusterDetails, clusters)
+			clusters.Mut.Lock()
 			clusters.AddClusterMemberList(NodeDetails)
 			clusters.BroadCastChannel <- *clusters.CreateClusterEvent(0, NodeDetails)
+			clusters.Mut.Unlock()
 		}
 	}
 }
@@ -92,6 +93,5 @@ func IdentifyCluster(s *Server, node *cluster.ClusterMember) *cluster.ClusterCon
 		}
 	}
 	s.ClusterDetails = append(s.ClusterDetails, clusterConfig)
-
 	return clusterConfig
 }
