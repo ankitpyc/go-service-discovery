@@ -14,7 +14,8 @@ type Server struct {
 
 func NewServer(host string, port string) *Server {
 	return &Server{
-		Host: host,
-		Port: port,
+		Host:           host,
+		Port:           port,
+		ClusterDetails: &[]clusters.ClusterConfig{},
 	}
 }

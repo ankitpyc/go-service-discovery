@@ -1,11 +1,11 @@
 package cluster
 
-func (cc ClusterConfig) AddClusterMemberList(member ClusterMember) []*ClusterMember {
+func (cc *ClusterConfig) AddClusterMemberList(member ClusterMember) []*ClusterMember {
 	cc.ClusterMemList = append(cc.ClusterMemList, &member)
 	return cc.ClusterMemList
 }
 
-func (cc ClusterConfig) ListenForBroadcasts() {
+func (cc *ClusterConfig) ListenForBroadcasts() {
 	for {
 		select {
 		case NewMember := <-cc.BroadCastChannel:
