@@ -1,8 +1,11 @@
 package cluster
 
+import "fmt"
+
 func (cc *ClusterConfig) AddClusterMemberList(member *ClusterMember) []*ClusterMember {
 	cc.Mut.Lock()
 	defer cc.Mut.Unlock()
+	fmt.Println("Discovered Node -> ", member.NodeAddr+":"+member.NodePort)
 	cc.ClusterMemList = append(cc.ClusterMemList, member)
 	return cc.ClusterMemList
 }

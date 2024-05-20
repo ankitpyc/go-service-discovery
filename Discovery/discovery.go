@@ -14,9 +14,11 @@ func (service *DiscoveryService) ClusterHealthCheck(config *cluster.ClusterConfi
 			return
 		}
 		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("Node %s is unhealthy", mem.NodeAddr)
+			fmt.Printf("Node %s is unhealthy", mem.NodeAddr+":"+mem.NodePort)
+			fmt.Println()
 			return
 		}
-		fmt.Printf("Node %s is healthy", mem.NodeAddr)
+		fmt.Printf("Node %s is healthy", mem.NodeAddr+":"+mem.NodePort)
+		fmt.Println()
 	}
 }

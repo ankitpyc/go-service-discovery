@@ -40,7 +40,7 @@ func (s *Server) StartServer() (*Server, error) {
 func InitiateHealthCheck(s *Server) {
 	fmt.Println("Initiating health check...")
 	discoveryService := Discovery.DiscoveryService{}
-	timer := time.NewTicker(time.Second * 10) // Create a ticker that ticks every 10 seconds
+	timer := time.NewTicker(time.Second * 20) // Create a ticker that ticks every 10 seconds
 	// Ensure the ticker is stopped when the function exits
 
 	for {
@@ -50,6 +50,7 @@ func InitiateHealthCheck(s *Server) {
 			s.SSMu.RLock()
 			for _, clusterConfig := range s.ClusterDetails {
 				// Perform health check on each cluster in a separate goroutine
+				fmt.Println("Running Cluster : ", clusterConfig.ClusterName)
 				go discoveryService.ClusterHealthCheck(clusterConfig)
 			}
 			s.SSMu.RUnlock()
@@ -99,11 +100,12 @@ func (server *Server) handleConnection(conn net.Conn) {
 				return
 			}
 
-			clusters := IdentifyCluster(server, NodeDetails)
+			clusters, existing := IdentifyCluster(server, NodeDetails)
 			clusters.AddClusterMemberList(NodeDetails)
-			server.ClusterDetails = append(server.ClusterDetails, clusters)
+			if !existing {
+				server.ClusterDetails = append(server.ClusterDetails, clusters)
+			}
 			clusters.BroadCastChannel <- *clusters.CreateClusterEvent(1, *NodeDetails)
-
 		}
 	}
 }
@@ -119,9 +121,10 @@ func (s *Server) StopServer() error {
 }
 
 // IdentifyCluster finds or creates a cluster configuration for the given node
-func IdentifyCluster(s *Server, node *cluster.ClusterMember) *cluster.ClusterConfig {
+func IdentifyCluster(s *Server, node *cluster.ClusterMember) (*cluster.ClusterConfig, bool) {
 	s.SSMu.RLock()
 	defer s.SSMu.RUnlock()
+	var existing bool = true
 	var clusterConfig *cluster.ClusterConfig
 	for _, cluster := range s.ClusterDetails {
 		if cluster.ClusterID == node.ClusterID {
@@ -131,6 +134,7 @@ func IdentifyCluster(s *Server, node *cluster.ClusterMember) *cluster.ClusterCon
 	}
 
 	if clusterConfig == nil {
+		existing = false
 		// Create a new cluster configuration if not found
 		clusterConfig = &cluster.ClusterConfig{
 			ClusterID:        node.ClusterID,
@@ -140,5 +144,5 @@ func IdentifyCluster(s *Server, node *cluster.ClusterMember) *cluster.ClusterCon
 			Mut:              sync.RWMutex{},
 		}
 	}
-	return clusterConfig
+	return clusterConfig, existing
 }
