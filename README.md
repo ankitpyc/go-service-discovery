@@ -46,13 +46,16 @@ To start the TCP server, use the following command:
 
 ```bash
 ./go-service-discovery --host <HOST> --port <PORT>
-    ```
+
+```
 
 ## Example:
 
  ```bash
 ./go-service-discovery --host 127.0.0.1 --port 2212
-    ```
+
+```
+
  ```bash
 
 // Sending a Request
@@ -61,26 +64,31 @@ echo -n -e '\x00{"ClusterID": "1", "NodeID": "node-123"}' | nc 127.0.0.1 2212
 ```
 📚 API
 
-Cluster Management
-AddClusterMemberList(member ClusterMember): Add a new member to the cluster.
-ListenForBroadcasts(): Listen for broadcast messages within the cluster.
-Server Methods
-StartServer() (*Server, error): Start the TCP server.
-ListenAndAccept() error: Accept incoming TCP connections.
-StopServer() error: Stop the TCP server.
-🤝 Contributing
+## Features
 
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
+- **AddClusterMemberList(member ClusterMember):** Add a new member to the cluster.
+- **ListenForBroadcasts():** Listen for broadcast messages within the cluster.
+- **Server Methods:**
+  - **StartServer() (*Server, error):** Start the TCP server.
+  - **ListenAndAccept() error:** Accept incoming TCP connections.
+  - **StopServer() error:** Stop the TCP server.
 
-Fork the repository
-Create your feature branch: git checkout -b feature/feature-name
-Commit your changes: git commit -m 'Add some feature'
-Push to the branch: git push origin feature/feature-name
-Open a pull request
-📄 License
+## 🤝 Contributing
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](link_to_your_issues_page).
 
-✨ Credits
-Author: Ankit
-Contributors: See the list of contributors who participated in this project.
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/feature-name`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature/feature-name`
+5. Open a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](link_to_your_license_file) file for details.
+
+## ✨ Credits
+
+**Author:** Ankit
+
+**Contributors:** See the list of contributors who participated in this project.
