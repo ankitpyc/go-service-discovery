@@ -1,20 +1,22 @@
 package Discovery
 
 import (
+	"fmt"
 	"go-service-discovery/cluster"
-	"net"
-	"time"
+	"net/http"
 )
 
 func (service *DiscoveryService) ClusterHealthCheck(config *cluster.ClusterConfig) {
 	for _, mem := range config.ClusterMemList {
-		dial, err := net.Dial("tcp", mem.NodeAddr+":"+mem.NodePort)
+		resp, err := http.Get("http://" + mem.NodeAddr + ":" + mem.NodePort + "/health")
 		if err != nil {
+			fmt.Println(err)
 			return
 		}
-		err = dial.SetDeadline(time.Now().Add(100 * time.Millisecond))
-		if err != nil {
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Node %s is unhealthy", mem.NodeAddr)
 			return
 		}
+		fmt.Printf("Node %s is healthy", mem.NodeAddr)
 	}
 }

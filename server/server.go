@@ -38,9 +38,10 @@ func (s *Server) StartServer() (*Server, error) {
 
 // InitiateHealthCheck starts a routine to periodically check the health of each cluster
 func InitiateHealthCheck(s *Server) {
+	fmt.Println("Initiating health check...")
 	discoveryService := Discovery.DiscoveryService{}
 	timer := time.NewTicker(time.Second * 10) // Create a ticker that ticks every 10 seconds
-	defer timer.Stop()                        // Ensure the ticker is stopped when the function exits
+	// Ensure the ticker is stopped when the function exits
 
 	for {
 		select {
@@ -49,9 +50,7 @@ func InitiateHealthCheck(s *Server) {
 			s.SSMu.RLock()
 			for _, clusterConfig := range s.ClusterDetails {
 				// Perform health check on each cluster in a separate goroutine
-				go func(cc *cluster.ClusterConfig) {
-					discoveryService.ClusterHealthCheck(cc)
-				}(clusterConfig)
+				go discoveryService.ClusterHealthCheck(clusterConfig)
 			}
 			s.SSMu.RUnlock()
 		}
@@ -92,7 +91,7 @@ func (server *Server) handleConnection(conn net.Conn) {
 		switch buf[0] {
 		case 0:
 			// Handle a new node joining the cluster
-			var NodeDetails cluster.ClusterMember
+			var NodeDetails *cluster.ClusterMember
 			nodeDetails := buf[1:readsize]
 			err := json.Unmarshal(nodeDetails, &NodeDetails)
 			if err != nil {
@@ -100,11 +99,11 @@ func (server *Server) handleConnection(conn net.Conn) {
 				return
 			}
 
-			clusters := IdentifyCluster(server, &NodeDetails)
-			clusters.Mut.Lock()
+			clusters := IdentifyCluster(server, NodeDetails)
 			clusters.AddClusterMemberList(NodeDetails)
-			clusters.BroadCastChannel <- *clusters.CreateClusterEvent(1, NodeDetails)
-			clusters.Mut.Unlock()
+			server.ClusterDetails = append(server.ClusterDetails, clusters)
+			clusters.BroadCastChannel <- *clusters.CreateClusterEvent(1, *NodeDetails)
+
 		}
 	}
 }
@@ -122,8 +121,7 @@ func (s *Server) StopServer() error {
 // IdentifyCluster finds or creates a cluster configuration for the given node
 func IdentifyCluster(s *Server, node *cluster.ClusterMember) *cluster.ClusterConfig {
 	s.SSMu.RLock()
-	defer s.SSMu.Unlock()
-
+	defer s.SSMu.RUnlock()
 	var clusterConfig *cluster.ClusterConfig
 	for _, cluster := range s.ClusterDetails {
 		if cluster.ClusterID == node.ClusterID {
@@ -141,8 +139,6 @@ func IdentifyCluster(s *Server, node *cluster.ClusterMember) *cluster.ClusterCon
 			BroadCastChannel: make(chan cluster.ClusterEvent),
 			Mut:              sync.RWMutex{},
 		}
-		s.ClusterDetails = append(s.ClusterDetails, clusterConfig)
 	}
-
 	return clusterConfig
 }

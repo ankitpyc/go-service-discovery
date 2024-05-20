@@ -1,9 +1,9 @@
 package cluster
 
-func (cc *ClusterConfig) AddClusterMemberList(member ClusterMember) []*ClusterMember {
+func (cc *ClusterConfig) AddClusterMemberList(member *ClusterMember) []*ClusterMember {
 	cc.Mut.Lock()
 	defer cc.Mut.Unlock()
-	cc.ClusterMemList = append(cc.ClusterMemList, &member)
+	cc.ClusterMemList = append(cc.ClusterMemList, member)
 	return cc.ClusterMemList
 }
 
