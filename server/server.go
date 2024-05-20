@@ -102,8 +102,10 @@ func (server *Server) handleConnection(conn net.Conn) {
 
 			clusters, existing := IdentifyCluster(server, NodeDetails)
 			clusters.AddClusterMemberList(NodeDetails)
+
 			if !existing {
 				server.ClusterDetails = append(server.ClusterDetails, clusters)
+				go clusters.ListenForBroadcasts()
 			}
 			clusters.BroadCastChannel <- *clusters.CreateClusterEvent(1, *NodeDetails)
 		}

@@ -1,5 +1,7 @@
 package cl
 
+import "sync/atomic"
+
 type NODETYPE int
 
 type ClusterEventTYPE int
@@ -23,6 +25,7 @@ type ClusterMember struct {
 	NodePort         string
 	ClusterID        string
 	MissedHeartbeats int
+	MissedCount      atomic.Int32
 }
 
 type ClusterEvent struct {
