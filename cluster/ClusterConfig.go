@@ -1,6 +1,18 @@
 package cluster
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
+
+type ClusterConfig struct {
+	ClusterMemList   []*ClusterMember
+	ClusterName      string
+	ClusterID        string
+	TotalSize        int
+	BroadCastChannel chan ClusterEvent
+	Mut              sync.RWMutex
+}
 
 func (cc *ClusterConfig) AddClusterMemberList(member *ClusterMember) []*ClusterMember {
 	cc.Mut.Lock()

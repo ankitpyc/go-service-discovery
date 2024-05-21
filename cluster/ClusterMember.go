@@ -1,6 +1,8 @@
 package cluster
 
-import "sync"
+import (
+	"sync/atomic"
+)
 
 type NODETYPE int
 
@@ -11,20 +13,13 @@ const (
 )
 
 type ClusterMember struct {
-	NodeType  NODETYPE
-	NodeID    string
-	NodeAddr  string
-	NodePort  string
-	ClusterID string
-}
-
-type ClusterConfig struct {
-	ClusterMemList   []*ClusterMember
-	ClusterName      string
+	NodeType         NODETYPE
+	NodeID           string
+	NodeAddr         string
+	NodePort         string
 	ClusterID        string
-	TotalSize        int
-	BroadCastChannel chan ClusterEvent
-	Mut              sync.RWMutex
+	MissedHeartbeats int
+	MissedCount      atomic.Int32
 }
 
 func NewClusterMember(nodeType string, nodeID string, nodeAddr string, nodePort string) *ClusterMember {

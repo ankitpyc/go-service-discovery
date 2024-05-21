@@ -1,4 +1,4 @@
-package Discovery
+package discovery
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func (service *DiscoveryService) ClusterHealthCheck(config *cluster.ClusterConfig) {
+func (service *ProberService) ClusterHealthCheck(config *cluster.ClusterConfig) {
 	for _, mem := range config.ClusterMemList {
 		resp, err := http.Get("http://" + mem.NodeAddr + ":" + mem.NodePort + "/health")
 		if err != nil {

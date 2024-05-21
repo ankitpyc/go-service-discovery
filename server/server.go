@@ -3,8 +3,8 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"go-service-discovery/Discovery"
 	"go-service-discovery/cluster"
+	"go-service-discovery/discovery"
 	"log"
 	"net"
 	"sync"
@@ -39,7 +39,7 @@ func (s *Server) StartServer() (*Server, error) {
 // InitiateHealthCheck starts a routine to periodically check the health of each cluster
 func InitiateHealthCheck(s *Server) {
 	fmt.Println("Initiating health check...")
-	discoveryService := Discovery.DiscoveryService{}
+	discoveryService := discovery.NewProberService()
 	timer := time.NewTicker(time.Second * 20) // Create a ticker that ticks every 10 seconds
 	// Ensure the ticker is stopped when the function exits
 
