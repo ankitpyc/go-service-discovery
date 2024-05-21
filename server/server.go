@@ -39,10 +39,10 @@ func (s *Server) StartServer() (*Server, error) {
 // InitiateHealthCheck starts a routine to periodically check the health of each cluster
 func InitiateHealthCheck(s *Server) {
 	fmt.Println("Initiating health check...")
-	discoveryService := discovery.NewProberService()
+	prober := discovery.NewProberService()
 	timer := time.NewTicker(time.Second * 20) // Create a ticker that ticks every 10 seconds
 	// Ensure the ticker is stopped when the function exits
-
+	go prober.MonitorForFailedChecks()
 	for {
 		select {
 		case <-timer.C:
@@ -51,7 +51,7 @@ func InitiateHealthCheck(s *Server) {
 			for _, clusterConfig := range s.ClusterDetails {
 				// Perform health check on each cluster in a separate goroutine
 				fmt.Println("Running Cluster : ", clusterConfig.ClusterName)
-				go discoveryService.ClusterHealthCheck(clusterConfig)
+				go prober.ClusterHealthCheck(clusterConfig)
 			}
 			s.SSMu.RUnlock()
 		}

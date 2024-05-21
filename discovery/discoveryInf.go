@@ -11,14 +11,16 @@ type ProberServiceInf interface {
 }
 
 type ProberService struct {
-	TimeOut time.Duration
-	Ctx     context.Context
+	TimeOut      time.Duration
+	Ctx          context.Context
+	FailedChecks chan *cluster.ClusterMember
 }
 
 func NewProberService(option ...Options) *ProberService {
 	prober := &ProberService{
-		TimeOut: 3 * time.Second,
-		Ctx:     context.Background(),
+		TimeOut:      3 * time.Second,
+		Ctx:          context.Background(),
+		FailedChecks: make(chan *cluster.ClusterMember),
 	}
 	for _, opti := range option {
 		opti(prober)
