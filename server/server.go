@@ -108,6 +108,12 @@ func (server *Server) handleConnection(conn net.Conn) {
 				go clusters.ListenForBroadcasts()
 			}
 			clusters.BroadCastChannel <- *clusters.CreateClusterEvent(1, *NodeDetails)
+			nodesInfo, err := json.Marshal(clusters.ClusterMemList)
+
+			if err != nil {
+				fmt.Printf("Failed to marshal clusters info: %v\n", err)
+			}
+			conn.Write(nodesInfo)
 		}
 	}
 }

@@ -30,7 +30,7 @@ type ClusterMember struct {
 
 type ClusterEvent struct {
 	ClusterEvent  ClusterEventTYPE
-	ClusterMember ClusterMember
+	ClusterMember *ClusterMember
 }
 
 type ClusterConfig struct {
@@ -49,7 +49,7 @@ func NewClusterMember(nodeType string, nodeID string, nodeAddr string, nodePort 
 		NodePort: nodePort,
 	}
 }
-func NewClusterEvent(eventType ClusterEventTYPE, member ClusterMember) *ClusterEvent {
+func NewClusterEvent(eventType ClusterEventTYPE, member *ClusterMember) *ClusterEvent {
 	return &ClusterEvent{
 		ClusterEvent:  eventType,
 		ClusterMember: member,
