@@ -4,6 +4,7 @@ import (
 	clusters "go-service-discovery/cluster"
 	"net"
 	"sync"
+	"time"
 )
 
 // Server represents a TCP server that manages cluster details and handles connections.
@@ -13,6 +14,7 @@ type Server struct {
 	TCPListener    net.Listener
 	SSMu           sync.RWMutex
 	ClusterDetails []*clusters.ClusterConfig
+	TimeOut        time.Duration
 }
 
 // NewServer initializes a new Server instance with the given host and port.
