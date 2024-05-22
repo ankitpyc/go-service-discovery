@@ -1,7 +1,7 @@
 package server
 
 import (
-	clusters "go-service-discovery/cluster"
+	clusters "go-service-discovery/cluster/config"
 	"net"
 	"sync"
 	"time"
@@ -21,7 +21,7 @@ type Server struct {
 	Port           string
 	TCPListener    net.Listener
 	SSMu           sync.RWMutex
-	ClusterDetails []*clusters.ClusterConfig
+	ClusterDetails []*clusters.ClusterDetails
 	TimeOut        time.Duration
 }
 
@@ -31,7 +31,7 @@ func NewServer(host string, port string) *Server {
 	return &Server{
 		Host:           host,
 		Port:           port,
-		ClusterDetails: []*clusters.ClusterConfig{}, // Initialize an empty slice for cluster configurations
-		SSMu:           sync.RWMutex{},              // Initialize the RWMutex
+		ClusterDetails: []*clusters.ClusterDetails{}, // Initialize an empty slice for cluster configurations
+		SSMu:           sync.RWMutex{},               // Initialize the RWMutex
 	}
 }

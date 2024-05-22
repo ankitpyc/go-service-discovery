@@ -3,7 +3,8 @@ package prober
 import (
 	"context"
 	"fmt"
-	"go-service-discovery/cluster"
+	"go-service-discovery/cluster/config"
+	"go-service-discovery/cluster/events"
 	"net/http"
 )
 
@@ -15,7 +16,7 @@ func (prober *ProberService) MonitorForFailedChecks() {
 			fmt.Println("Node is unhealthy")
 			if member.ClusterMember.MissedHeartbeats >= 2 {
 				member.ClusterMember.NodeStatus = "Unreachable"
-				member.ClusterConfig.BroadCastChannel <- cluster.ClusterEvent{ClusterEvent: cluster.EventTYPE(1), ClusterMember: *member.ClusterMember}
+				member.ClusterConfig.BroadCastChannel <- events.ClusterEvent{ClusterEvent: events.EventTYPE(1), ClusterMember: *member.ClusterMember}
 				fmt.Println("MissedCount is greater than or equal to 2. Nodes are removed from Cluster Checks")
 			} else {
 				member.ClusterMember.MissedHeartbeats = member.ClusterMember.MissedHeartbeats + 1
@@ -24,7 +25,7 @@ func (prober *ProberService) MonitorForFailedChecks() {
 	}
 }
 
-func (prober *ProberService) ClusterHealthCheck(config *cluster.ClusterConfig) {
+func (prober *ProberService) ClusterHealthCheck(config *config.ClusterDetails) {
 
 	for _, mem := range config.ClusterMemList {
 		if mem.NodeStatus != "Healthy" {
@@ -43,14 +44,6 @@ func (prober *ProberService) ClusterHealthCheck(config *cluster.ClusterConfig) {
 		if resp.StatusCode != http.StatusOK {
 			prober.FailedChecks <- FailedMemConfig{mem, config}
 		}
-
-		defer func() {
-			if r := recover(); r != nil {
-				prober.FailedChecks <- FailedMemConfig{mem, config}
-				fmt.Printf("Probe panicked for member %s: %v\n", mem.NodeAddr, r)
-			}
-		}()
-
 		fmt.Printf("Node %s is healthy", mem.NodeAddr+":"+mem.NodePort)
 		fmt.Println()
 	}

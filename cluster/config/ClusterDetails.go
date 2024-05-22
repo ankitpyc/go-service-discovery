@@ -1,20 +1,23 @@
-package cluster
+package config
 
 import (
 	"fmt"
+	"go-service-discovery/cluster"
+	"go-service-discovery/cluster/broadcast"
+	"go-service-discovery/cluster/events"
 	"sync"
 )
 
-type ClusterConfig struct {
-	ClusterMemList   []*ClusterMember
+type ClusterDetails struct {
+	ClusterMemList   []*cluster.ClusterMember
 	ClusterName      string
 	ClusterID        string
 	TotalSize        int
-	BroadCastChannel chan ClusterEvent
+	BroadCastChannel chan events.ClusterEvent
 	Mut              sync.RWMutex
 }
 
-func (cc *ClusterConfig) AddClusterMemberList(member *ClusterMember) []*ClusterMember {
+func (cc *ClusterDetails) AddClusterMemberList(member *cluster.ClusterMember) []*cluster.ClusterMember {
 	cc.Mut.Lock()
 	defer cc.Mut.Unlock()
 	member.NodeStatus = "HEALTHY"
@@ -23,27 +26,27 @@ func (cc *ClusterConfig) AddClusterMemberList(member *ClusterMember) []*ClusterM
 	return cc.ClusterMemList
 }
 
-func (cc *ClusterConfig) ListenForBroadcasts() {
+func (cc *ClusterDetails) ListenForBroadcasts() {
 	for {
 		select {
 		case event := <-cc.BroadCastChannel:
-			if event.ClusterEvent == EventTYPE(0) {
+			if event.ClusterEvent == events.EventTYPE(0) {
 				cc.JoinCluster(event)
-			} else if event.ClusterEvent == EventTYPE(1) {
+			} else if event.ClusterEvent == events.EventTYPE(1) {
 				cc.LeaveCluster(event)
 			}
 		}
 	}
 }
 
-func (cc *ClusterConfig) JoinCluster(event ClusterEvent) {
+func (cc *ClusterDetails) JoinCluster(event events.ClusterEvent) {
 	fmt.Println("New Node Joined Cluster -> ", event.ClusterMember.NodeID)
 	for _, clusterMember := range cc.ClusterMemList {
-		BroadCastEvents(clusterMember, event.ClusterMember)
+		broadcast.BroadCastEvents(clusterMember, event.ClusterMember)
 	}
 }
 
-func (cc *ClusterConfig) LeaveCluster(event ClusterEvent) {
+func (cc *ClusterDetails) LeaveCluster(event events.ClusterEvent) {
 	fmt.Println("Node Removed Cluster -> ", event.ClusterMember.NodeID)
 
 	cc.Mut.Lock()
@@ -55,12 +58,5 @@ func (cc *ClusterConfig) LeaveCluster(event ClusterEvent) {
 			cc.ClusterMemList = append(cc.ClusterMemList[:i], cc.ClusterMemList[i+1:]...)
 			return
 		}
-	}
-}
-
-func (cc *ClusterConfig) CreateClusterEvent(eventTYPE EventTYPE, details ClusterMember) *ClusterEvent {
-	return &ClusterEvent{
-		ClusterEvent:  eventTYPE,
-		ClusterMember: details,
 	}
 }

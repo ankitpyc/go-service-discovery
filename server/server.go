@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-service-discovery/cluster"
+	"go-service-discovery/cluster/config"
+	"go-service-discovery/cluster/events"
 	"go-service-discovery/prober"
 	"log"
 	"net"
@@ -38,10 +40,10 @@ func (s *Server) StartServer() (*Server, error) {
 // InitiateHealthCheck starts a routine to periodically check the health of each cluster
 func InitiateHealthCheck(s *Server) {
 	fmt.Println("Initiating health check...")
-	prober := prober.NewProberService()
+	prob := prober.NewProberService()
 	timer := time.NewTicker(time.Second * 20) // Create a ticker that ticks every 10 seconds
 	// Ensure the ticker is stopped when the function exits
-	go prober.MonitorForFailedChecks()
+	go prob.MonitorForFailedChecks()
 	for {
 		select {
 		case <-timer.C:
@@ -49,8 +51,8 @@ func InitiateHealthCheck(s *Server) {
 			s.SSMu.RLock()
 			for _, clusterConfig := range s.ClusterDetails {
 				// Perform health check on each cluster in a separate goroutine
-				fmt.Println("Running Cluster : ", clusterConfig.ClusterName)
-				go prober.ClusterHealthCheck(clusterConfig)
+				fmt.Println("Running Cluster : ", clusterConfig)
+				go prob.ClusterHealthCheck(clusterConfig)
 			}
 			s.SSMu.RUnlock()
 		}
@@ -113,13 +115,13 @@ func (server *Server) UpdateClusterConfig(conn net.Conn, buf []byte, readsize in
 		server.ClusterDetails = append(server.ClusterDetails, clusters)
 		go clusters.ListenForBroadcasts()
 	}
-	clusters.BroadCastChannel <- *clusters.CreateClusterEvent(0, *NodeDetails)
+	clusters.BroadCastChannel <- events.NewClusterEvent(events.EventTYPE(0), *NodeDetails)
 	nodesInfo, err := json.Marshal(clusters.ClusterMemList)
 
 	if err != nil {
-		fmt.Printf("Failed to marshal clusters info: %v\n", err)
+		log.Printf("Failed to marshal clusters info: %v\n", err)
 	}
-	conn.Write(nodesInfo)
+	_, err = conn.Write(nodesInfo)
 	return false
 }
 
@@ -134,11 +136,11 @@ func (s *Server) StopServer() error {
 }
 
 // IdentifyCluster finds or creates a cluster configuration for the given node
-func IdentifyCluster(s *Server, node *cluster.ClusterMember) (*cluster.ClusterConfig, bool) {
+func IdentifyCluster(s *Server, node *cluster.ClusterMember) (*config.ClusterDetails, bool) {
 	s.SSMu.RLock()
 	defer s.SSMu.RUnlock()
 	var existing bool = true
-	var clusterConfig *cluster.ClusterConfig
+	var clusterConfig *config.ClusterDetails
 	for _, cluster := range s.ClusterDetails {
 		if cluster.ClusterID == node.ClusterID {
 			clusterConfig = cluster
@@ -149,11 +151,11 @@ func IdentifyCluster(s *Server, node *cluster.ClusterMember) (*cluster.ClusterCo
 	if clusterConfig == nil {
 		existing = false
 		// Create a new cluster configuration if not found
-		clusterConfig = &cluster.ClusterConfig{
+		clusterConfig = &config.ClusterDetails{
 			ClusterID:        node.ClusterID,
 			ClusterName:      "",
 			ClusterMemList:   make([]*cluster.ClusterMember, 0, 5), // Initialize with a capacity of 5
-			BroadCastChannel: make(chan cluster.ClusterEvent),
+			BroadCastChannel: make(chan events.ClusterEvent),
 			Mut:              sync.RWMutex{},
 		}
 	}

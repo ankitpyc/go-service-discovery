@@ -1,16 +1,17 @@
-package cluster
+package broadcast
 
 import (
 	"bytes"
 	"encoding/json"
+	"go-service-discovery/cluster"
 	"net/http"
 )
 
 type BroadcastInf interface {
-	BroadCastEvents(targetMember *ClusterMember, data ClusterMember)
+	BroadCastEvents(targetMember *cluster.ClusterMember, data cluster.ClusterMember)
 }
 
-func BroadCastEvents(targetMember *ClusterMember, data ClusterMember) {
+func BroadCastEvents(targetMember *cluster.ClusterMember, data cluster.ClusterMember) {
 	if targetMember.NodePort == data.NodePort {
 		return
 	}

@@ -3,16 +3,17 @@ package prober
 import (
 	"context"
 	"go-service-discovery/cluster"
+	"go-service-discovery/cluster/config"
 	"time"
 )
 
 type FailedMemConfig struct {
 	ClusterMember *cluster.ClusterMember
-	ClusterConfig *cluster.ClusterConfig
+	ClusterConfig *config.ClusterDetails
 }
 
 type ProberServiceInf interface {
-	ClusterHealthCheck(config *cluster.ClusterConfig)
+	ClusterHealthCheck(config *config.ClusterDetails)
 }
 
 type ProberService struct {
