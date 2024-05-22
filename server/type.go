@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+type ServerInf interface {
+	StartServer() (*Server, error)
+	ListenAndAccept() error
+	handleConnection(conn net.Conn)
+	StopServer() error
+	UpdateClusterConfig(conn net.Conn, buf []byte, readsize int) bool
+}
+
 // Server represents a TCP server that manages cluster details and handles connections.
 type Server struct {
 	Host           string

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-service-discovery/cluster"
-	"go-service-discovery/discovery"
+	"go-service-discovery/prober"
 	"log"
 	"net"
 	"sync"
@@ -32,14 +32,13 @@ func (s *Server) StartServer() (*Server, error) {
 
 	// Start the health check routine
 	go InitiateHealthCheck(s)
-
 	return s, nil
 }
 
 // InitiateHealthCheck starts a routine to periodically check the health of each cluster
 func InitiateHealthCheck(s *Server) {
 	fmt.Println("Initiating health check...")
-	prober := discovery.NewProberService()
+	prober := prober.NewProberService()
 	timer := time.NewTicker(time.Second * 20) // Create a ticker that ticks every 10 seconds
 	// Ensure the ticker is stopped when the function exits
 	go prober.MonitorForFailedChecks()
@@ -85,37 +84,43 @@ func (server *Server) handleConnection(conn net.Conn) {
 		}
 
 		if readsize == 0 {
+			log.Printf("Recieved Zero Bytes . Closing the Connection ")
 			return // Connection closed by client
 		}
-
-		fmt.Println(readsize)
-		switch buf[0] {
+		eventType := buf[0]
+		switch eventType {
 		case 0:
 			// Handle a new node joining the cluster
-			var NodeDetails *cluster.ClusterMember
-			nodeDetails := buf[1:readsize]
-			err := json.Unmarshal(nodeDetails, &NodeDetails)
-			if err != nil {
-				fmt.Printf("Failed to unmarshal node details: %v\n", err)
+			if server.UpdateClusterConfig(conn, buf, readsize) {
 				return
 			}
-
-			clusters, existing := IdentifyCluster(server, NodeDetails)
-			clusters.AddClusterMemberList(NodeDetails)
-
-			if !existing {
-				server.ClusterDetails = append(server.ClusterDetails, clusters)
-				go clusters.ListenForBroadcasts()
-			}
-			clusters.BroadCastChannel <- *clusters.CreateClusterEvent(1, *NodeDetails)
-			nodesInfo, err := json.Marshal(clusters.ClusterMemList)
-
-			if err != nil {
-				fmt.Printf("Failed to marshal clusters info: %v\n", err)
-			}
-			conn.Write(nodesInfo)
 		}
 	}
+}
+
+func (server *Server) UpdateClusterConfig(conn net.Conn, buf []byte, readsize int) bool {
+	var NodeDetails *cluster.ClusterMember
+	nodeDetails := buf[1:readsize]
+	err := json.Unmarshal(nodeDetails, &NodeDetails)
+	if err != nil {
+		fmt.Printf("Failed to unmarshal node details: %v\n", err)
+		return true
+	}
+	clusters, existing := IdentifyCluster(server, NodeDetails)
+	clusters.AddClusterMemberList(NodeDetails)
+
+	if !existing {
+		server.ClusterDetails = append(server.ClusterDetails, clusters)
+		go clusters.ListenForBroadcasts()
+	}
+	clusters.BroadCastChannel <- *clusters.CreateClusterEvent(0, *NodeDetails)
+	nodesInfo, err := json.Marshal(clusters.ClusterMemList)
+
+	if err != nil {
+		fmt.Printf("Failed to marshal clusters info: %v\n", err)
+	}
+	conn.Write(nodesInfo)
+	return false
 }
 
 // StopServer stops the TCP server from listening for new connections
