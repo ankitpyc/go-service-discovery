@@ -13,7 +13,7 @@ func (prober *ProberService) MonitorForFailedChecks() {
 	for {
 		select {
 		case member := <-prober.FailedChecks:
-			fmt.Println("Node is unhealthy")
+			fmt.Println("Node %s is unhealthy", member.ClusterMember.NodeAddr+":"+member.ClusterMember.NodePort)
 			if member.ClusterMember.MissedHeartbeats >= 2 {
 				member.ClusterMember.NodeStatus = "Unreachable"
 				member.ClusterConfig.BroadCastChannel <- events.ClusterEvent{ClusterEvent: events.EventTYPE(1), ClusterMember: *member.ClusterMember}
@@ -40,6 +40,7 @@ func (prober *ProberService) ClusterHealthCheck(config *config.ClusterDetails) {
 		resp, err := client.Do(req)
 		if resp == nil || err != nil {
 			prober.FailedChecks <- FailedMemConfig{mem, config}
+			continue
 		}
 		if resp.StatusCode != http.StatusOK {
 			prober.FailedChecks <- FailedMemConfig{mem, config}

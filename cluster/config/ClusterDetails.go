@@ -47,16 +47,19 @@ func (cc *ClusterDetails) JoinCluster(event events.ClusterEvent) {
 }
 
 func (cc *ClusterDetails) LeaveCluster(event events.ClusterEvent) {
-	fmt.Println("Node Removed Cluster -> ", event.ClusterMember.NodeID)
+	fmt.Println("Node Removed Cluster -> ", event.ClusterMember.NodePort)
 
 	cc.Mut.Lock()
-	nodeId := event.ClusterMember.NodeID
+	nodeId := event.ClusterMember.NodePort
 	defer cc.Mut.Unlock()
 	for i, mem := range cc.ClusterMemList {
-		if mem.NodeID == nodeId {
+		if mem.NodePort == nodeId {
 			// Remove the member from the slice
 			cc.ClusterMemList = append(cc.ClusterMemList[:i], cc.ClusterMemList[i+1:]...)
-			return
 		}
+	}
+	fmt.Println("Nodes Remaining.. ")
+	for _, clusterMember := range cc.ClusterMemList {
+		fmt.Println("Node :- ", clusterMember.NodeAddr+":"+clusterMember.NodePort)
 	}
 }

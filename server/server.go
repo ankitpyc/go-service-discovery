@@ -51,7 +51,7 @@ func InitiateHealthCheck(s *Server) {
 			s.SSMu.RLock()
 			for _, clusterConfig := range s.ClusterDetails {
 				// Perform health check on each cluster in a separate goroutine
-				fmt.Println("Running Cluster : ", clusterConfig)
+				log.Printf("Running Cluster Health Check for cluster %s ... :-  ", clusterConfig.ClusterID)
 				go prob.ClusterHealthCheck(clusterConfig)
 			}
 			s.SSMu.RUnlock()
@@ -96,6 +96,11 @@ func (server *Server) handleConnection(conn net.Conn) {
 			if server.UpdateClusterConfig(conn, buf, readsize) {
 				return
 			}
+		case 1:
+			// Handle a new node joining the cluster
+			if server.RemoveClusterConfig(conn, buf, readsize) {
+				return
+			}
 		}
 	}
 }
@@ -118,6 +123,26 @@ func (server *Server) UpdateClusterConfig(conn net.Conn, buf []byte, readsize in
 	clusters.BroadCastChannel <- events.NewClusterEvent(events.EventTYPE(0), *NodeDetails)
 	nodesInfo, err := json.Marshal(clusters.ClusterMemList)
 
+	if err != nil {
+		log.Printf("Failed to marshal clusters info: %v\n", err)
+	}
+	_, err = conn.Write(nodesInfo)
+	return false
+}
+
+func (server *Server) RemoveClusterConfig(conn net.Conn, buf []byte, readsize int) bool {
+	var NodeDetails *cluster.ClusterMember
+	nodeDetails := buf[1:readsize]
+	err := json.Unmarshal(nodeDetails, &NodeDetails)
+	if err != nil {
+		fmt.Printf("Failed to unmarshal node details: %v\n", err)
+		return true
+	}
+	clusters, existing := IdentifyCluster(server, NodeDetails)
+	if existing {
+		clusters.BroadCastChannel <- events.NewClusterEvent(events.EventTYPE(0), *NodeDetails)
+	}
+	nodesInfo, err := json.Marshal(clusters.ClusterMemList)
 	if err != nil {
 		log.Printf("Failed to marshal clusters info: %v\n", err)
 	}
