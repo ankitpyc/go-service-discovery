@@ -26,15 +26,15 @@ func (prober *ProberService) MonitorForFailedChecks() {
 }
 
 func (prober *ProberService) ClusterHealthCheck(config *config.ClusterDetails) {
-
+	config.Mut.RLock()
+	defer config.Mut.RUnlock()
 	for _, mem := range config.ClusterMemList {
-		if mem.NodeStatus != "Healthy" {
-		}
 		ctx, _ := context.WithTimeout(context.Background(), prober.TimeOut)
-		url := "http://" + mem.NodeAddr + ":" + mem.NodePort + "/health"
+		url := "http://" + mem.NodeAddr + ":" + mem.NodePort + "/Health"
 		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 		if err != nil {
 			prober.FailedChecks <- FailedMemConfig{mem, config}
+			continue
 		}
 		client := http.DefaultClient
 		resp, err := client.Do(req)
@@ -44,6 +44,7 @@ func (prober *ProberService) ClusterHealthCheck(config *config.ClusterDetails) {
 		}
 		if resp.StatusCode != http.StatusOK {
 			prober.FailedChecks <- FailedMemConfig{mem, config}
+			continue
 		}
 		fmt.Printf("Node %s is healthy", mem.NodeAddr+":"+mem.NodePort)
 		fmt.Println()

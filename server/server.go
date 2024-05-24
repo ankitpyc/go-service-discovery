@@ -131,6 +131,7 @@ func (server *Server) UpdateClusterConfig(conn net.Conn, buf []byte, readsize in
 }
 
 func (server *Server) RemoveClusterConfig(conn net.Conn, buf []byte, readsize int) bool {
+	fmt.Println("Removing cluster members .. ")
 	var NodeDetails *cluster.ClusterMember
 	nodeDetails := buf[1:readsize]
 	err := json.Unmarshal(nodeDetails, &NodeDetails)
@@ -140,7 +141,7 @@ func (server *Server) RemoveClusterConfig(conn net.Conn, buf []byte, readsize in
 	}
 	clusters, existing := IdentifyCluster(server, NodeDetails)
 	if existing {
-		clusters.BroadCastChannel <- events.NewClusterEvent(events.EventTYPE(0), *NodeDetails)
+		clusters.BroadCastChannel <- events.NewClusterEvent(events.EventTYPE(1), *NodeDetails)
 	}
 	nodesInfo, err := json.Marshal(clusters.ClusterMemList)
 	if err != nil {

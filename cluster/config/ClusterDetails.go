@@ -60,6 +60,6 @@ func (cc *ClusterDetails) LeaveCluster(event events.ClusterEvent) {
 	}
 	fmt.Println("Nodes Remaining.. ")
 	for _, clusterMember := range cc.ClusterMemList {
-		fmt.Println("Node :- ", clusterMember.NodeAddr+":"+clusterMember.NodePort)
+		broadcast.BroadLeaveCastEvents(clusterMember, event.ClusterMember)
 	}
 }
