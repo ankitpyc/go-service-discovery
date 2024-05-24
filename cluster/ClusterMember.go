@@ -16,6 +16,7 @@ type ClusterMember struct {
 	ClusterID        string
 	MissedHeartbeats int
 	NodeStatus       string
+	GrpcPort         string
 }
 
 func NewClusterMember(nodeType string, nodeID string, nodeAddr string, nodePort string) *ClusterMember {
