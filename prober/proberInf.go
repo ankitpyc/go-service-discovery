@@ -29,7 +29,7 @@ func (prober *ProberService) handleTimeout(mem *cluster.ClusterMember, details *
 
 func NewProberService(option ...Options) *ProberService {
 	prober := &ProberService{
-		TimeOut:      3 * time.Second,
+		TimeOut:      1 * time.Second,
 		Ctx:          context.Background(),
 		FailedChecks: make(chan FailedMemConfig),
 	}

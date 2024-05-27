@@ -28,8 +28,8 @@ func (prober *ProberService) MonitorForFailedChecks(ctx context.Context) {
 }
 
 func (prober *ProberService) ClusterHealthCheck(ctx context.Context, config *config.ClusterDetails) {
-	config.Mut.RLock()
-	defer config.Mut.RUnlock()
+	config.RLock()
+	defer config.RUnlock()
 	for _, mem := range config.ClusterMemList {
 		cont, cancel := context.WithTimeout(ctx, prober.TimeOut)
 		defer cancel()
