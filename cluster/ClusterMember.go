@@ -14,7 +14,7 @@ type ClusterMember struct {
 	NodeAddr         string
 	NodePort         string
 	ClusterID        string
-	MissedHeartbeats int
+	MissedHeartbeats int32
 	NodeStatus       string
 	GrpcPort         string
 }

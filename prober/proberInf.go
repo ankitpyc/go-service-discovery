@@ -2,7 +2,6 @@ package prober
 
 import (
 	"context"
-	"fmt"
 	"go-service-discovery/cluster"
 	"go-service-discovery/cluster/config"
 	"time"
@@ -21,10 +20,6 @@ type ProberService struct {
 	TimeOut      time.Duration
 	Ctx          context.Context
 	FailedChecks chan FailedMemConfig
-}
-
-func (prober *ProberService) handleTimeout(mem *cluster.ClusterMember, details *config.ClusterDetails) {
-	fmt.Println("port ", mem.NodePort, " has timeout")
 }
 
 func NewProberService(option ...Options) *ProberService {
