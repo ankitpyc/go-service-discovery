@@ -21,3 +21,9 @@ H
 go.mod,c/4/c47645c391ad0571c40779079363c9d48412e18b
 C
 prober/proberInf.go,5/1/51fef2b92da307351d281c8dfab5c2f43c0664bd
+R
+"cluster/config/ClusterConfigInf.go,4/5/4539a40629b9e5333bce0f9985d3b5663cd84e39
+I
+cluster/config/Options.go,2/2/22447033671831c387fcd9db375f1d3825e9ba59
+V
+&cluster/config/RegisterationReponse.go,8/6/86a44c29b2cff2bce5f74ab0f576f9614d498628

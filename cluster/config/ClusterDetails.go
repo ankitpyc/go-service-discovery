@@ -13,6 +13,7 @@ type ClusterDetails struct {
 	ClusterMemList   []*cluster.ClusterMember
 	ClusterName      string
 	ClusterID        string
+	ClusterSecretKey string
 	TotalSize        int
 	BroadCastChannel chan events.ClusterEvent
 }

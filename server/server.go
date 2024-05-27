@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"go-service-discovery/cluster"
@@ -115,16 +117,24 @@ func (server *Server) UpdateClusterConfig(conn net.Conn, buf []byte, readsize in
 
 	if !existing {
 		server.ClusterDetails = append(server.ClusterDetails, clusters)
+		server.ClusterDetails[0].ClusterSecretKey, _ = generateSecretKey(32)
 		go clusters.ListenForBroadcasts()
 	}
 	clusters.BroadCastChannel <- events.NewClusterEvent(events.EventTYPE(0), *NodeDetails)
-	nodesInfo, err := json.Marshal(clusters.ClusterMemList)
-
+	clusterInfo, err := json.Marshal(config.RegistrationRepose{Members: clusters.ClusterMemList, Secret: server.ClusterDetails[0].ClusterSecretKey})
 	if err != nil {
 		log.Printf("Failed to marshal clusters info: %v\n", err)
 	}
-	_, err = conn.Write(nodesInfo)
+	_, err = conn.Write(clusterInfo)
 	return false
+}
+
+func generateSecretKey(length int) (string, error) {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 func (server *Server) RemoveClusterConfig(conn net.Conn, buf []byte, readsize int) bool {
@@ -160,8 +170,8 @@ func (server *Server) StopServer() error {
 
 // IdentifyCluster finds or creates a cluster configuration for the given node
 func IdentifyCluster(s *Server, node *cluster.ClusterMember) (*config.ClusterDetails, bool) {
-	s.RLock()
-	defer s.RUnlock()
+	s.Lock()
+	defer s.Unlock()
 	var existing bool = true
 	var clusterConfig *config.ClusterDetails
 	for _, cluster := range s.ClusterDetails {
