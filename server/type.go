@@ -17,10 +17,10 @@ type ServerInf interface {
 
 // Server represents a TCP server that manages cluster details and handles connections.
 type Server struct {
+	sync.RWMutex
 	Host           string
 	Port           string
 	TCPListener    net.Listener
-	SSMu           sync.RWMutex
 	ClusterDetails []*clusters.ClusterDetails
 	TimeOut        time.Duration
 }
@@ -32,6 +32,5 @@ func NewServer(host string, port string) *Server {
 		Host:           host,
 		Port:           port,
 		ClusterDetails: []*clusters.ClusterDetails{}, // Initialize an empty slice for cluster configurations
-		SSMu:           sync.RWMutex{},               // Initialize the RWMutex
 	}
 }

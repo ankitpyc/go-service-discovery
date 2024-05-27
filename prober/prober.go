@@ -2,13 +2,15 @@ package prober
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"go-service-discovery/cluster"
 	"go-service-discovery/cluster/config"
 	"go-service-discovery/cluster/events"
 	"net/http"
 )
 
-func (prober *ProberService) MonitorForFailedChecks() {
+func (prober *ProberService) MonitorForFailedChecks(ctx context.Context) {
 	// Correct way to compare atomic.Int32 with an int
 	for {
 		select {
@@ -25,28 +27,40 @@ func (prober *ProberService) MonitorForFailedChecks() {
 	}
 }
 
-func (prober *ProberService) ClusterHealthCheck(config *config.ClusterDetails) {
+func (prober *ProberService) ClusterHealthCheck(ctx context.Context, config *config.ClusterDetails) {
 	config.Mut.RLock()
 	defer config.Mut.RUnlock()
 	for _, mem := range config.ClusterMemList {
-		ctx, _ := context.WithTimeout(context.Background(), prober.TimeOut)
+		cont, cancel := context.WithTimeout(ctx, prober.TimeOut)
+		defer cancel()
 		url := "http://" + mem.NodeAddr + ":" + mem.NodePort + "/Health"
-		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		req, err := http.NewRequestWithContext(cont, "GET", url, nil)
 		if err != nil {
 			prober.FailedChecks <- FailedMemConfig{mem, config}
 			continue
 		}
-		client := http.DefaultClient
-		resp, err := client.Do(req)
-		if resp == nil || err != nil {
-			prober.FailedChecks <- FailedMemConfig{mem, config}
+		resp, err := http.DefaultClient.Do(req)
+		probeFailed := prober.handleProbeResponse(resp, err, mem, config)
+		if probeFailed {
 			continue
 		}
-		if resp.StatusCode != http.StatusOK {
-			prober.FailedChecks <- FailedMemConfig{mem, config}
-			continue
-		}
-		fmt.Printf("Node %s is healthy", mem.NodeAddr+":"+mem.NodePort)
-		fmt.Println()
 	}
+}
+
+func (prober *ProberService) handleProbeResponse(resp *http.Response, err error, mem *cluster.ClusterMember, config *config.ClusterDetails) bool {
+	var probeFailed bool = false
+	if errors.Is(err, context.DeadlineExceeded) {
+		prober.handleTimeout(mem, config)
+	}
+	if resp == nil || err != nil {
+		prober.FailedChecks <- FailedMemConfig{mem, config}
+		probeFailed = true
+		return probeFailed
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		prober.FailedChecks <- FailedMemConfig{mem, config}
+		probeFailed = true
+	}
+	return probeFailed
 }

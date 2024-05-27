@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"go-service-discovery/cluster"
@@ -9,7 +10,6 @@ import (
 	"go-service-discovery/prober"
 	"log"
 	"net"
-	"sync"
 	"time"
 )
 
@@ -22,54 +22,56 @@ const (
 )
 
 // StartServer initializes the TCP server and starts listening for connections
-func (s *Server) StartServer() (*Server, error) {
+func (server *Server) StartServer() (*Server, error) {
 	// Start listening on the specified host and port
-	listener, err := net.Listen("tcp", s.Host+":"+s.Port)
+	listener, err := net.Listen("tcp", server.Host+":"+server.Port)
 	if err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		log.Printf("Failed to start server: %v", err)
 		return nil, err
 	}
-	s.TCPListener = listener
-	fmt.Println("TCP Server listening on", s.Host+":"+s.Port)
-
+	server.TCPListener = listener
+	fmt.Println("TCP Server listening on", server.Host+":"+server.Port)
 	// Start the health check routine
-	go InitiateHealthCheck(s)
-	return s, nil
+	go InitiateHealthCheck(server)
+	return server, nil
 }
 
 // InitiateHealthCheck starts a routine to periodically check the health of each cluster
-func InitiateHealthCheck(s *Server) {
-	fmt.Println("Initiating health check...")
+func InitiateHealthCheck(server *Server) {
+	fmt.Println("Initiating health checks ...")
 	prob := prober.NewProberService()
-	timer := time.NewTicker(time.Second * 20) // Create a ticker that ticks every 10 seconds
+	ctx := context.Background()
+	timer := time.NewTicker(time.Second * 20)
+	defer timer.Stop()
+	// Create a ticker that ticks every 10 seconds
 	// Ensure the ticker is stopped when the function exits
-	go prob.MonitorForFailedChecks()
+	go prob.MonitorForFailedChecks(ctx)
 	for {
 		select {
 		case <-timer.C:
 			// Lock the server to safely access the cluster details
-			s.SSMu.RLock()
-			for _, clusterConfig := range s.ClusterDetails {
+			server.RLock()
+			for _, clusterConfig := range server.ClusterDetails {
 				// Perform health check on each cluster in a separate goroutine
 				log.Printf("Running Cluster Health Check for cluster %s ... :-  ", clusterConfig.ClusterID)
-				go prob.ClusterHealthCheck(clusterConfig)
+				go prob.ClusterHealthCheck(ctx, clusterConfig)
 			}
-			s.SSMu.RUnlock()
+			server.RUnlock()
 		}
 	}
 }
 
 // ListenAndAccept accepts incoming connections and handles them
-func (s *Server) ListenAndAccept() error {
+func (server *Server) ListenAndAccept() error {
 	for {
 		// Accept a new connection
-		conn, err := s.TCPListener.Accept()
+		conn, err := server.TCPListener.Accept()
 		if err != nil {
 			log.Printf("Failed to accept connection: %v", err)
 			return err
 		}
 		// Handle the connection in a new goroutine
-		go s.handleConnection(conn)
+		go server.handleConnection(conn)
 	}
 }
 
@@ -79,26 +81,21 @@ func (server *Server) handleConnection(conn net.Conn) {
 
 	for {
 		buf := make([]byte, 1024) // Create a buffer to read data from the connection
-		readsize, err := conn.Read(buf)
-		if err != nil {
+		bytesread, err := conn.Read(buf)
+		if err != nil || bytesread == 0 {
 			log.Printf("Failed to read from connection: %v", err)
 			return
-		}
-
-		if readsize == 0 {
-			log.Printf("Recieved Zero Bytes . Closing the Connection ")
-			return // Connection closed by client
 		}
 		eventType := buf[0]
 		switch eventType {
 		case 0:
 			// Handle a new node joining the cluster
-			if server.UpdateClusterConfig(conn, buf, readsize) {
+			if server.UpdateClusterConfig(conn, buf, bytesread) {
 				return
 			}
 		case 1:
 			// Handle a new node joining the cluster
-			if server.RemoveClusterConfig(conn, buf, readsize) {
+			if server.RemoveClusterConfig(conn, buf, bytesread) {
 				return
 			}
 		}
@@ -152,8 +149,8 @@ func (server *Server) RemoveClusterConfig(conn net.Conn, buf []byte, readsize in
 }
 
 // StopServer stops the TCP server from listening for new connections
-func (s *Server) StopServer() error {
-	err := s.TCPListener.Close()
+func (server *Server) StopServer() error {
+	err := server.TCPListener.Close()
 	fmt.Println("TCP Server stopped listening. Server will be stopped")
 	if err != nil {
 		return err
@@ -163,8 +160,8 @@ func (s *Server) StopServer() error {
 
 // IdentifyCluster finds or creates a cluster configuration for the given node
 func IdentifyCluster(s *Server, node *cluster.ClusterMember) (*config.ClusterDetails, bool) {
-	s.SSMu.RLock()
-	defer s.SSMu.RUnlock()
+	s.RLock()
+	defer s.RUnlock()
 	var existing bool = true
 	var clusterConfig *config.ClusterDetails
 	for _, cluster := range s.ClusterDetails {
@@ -182,7 +179,6 @@ func IdentifyCluster(s *Server, node *cluster.ClusterMember) (*config.ClusterDet
 			ClusterName:      "",
 			ClusterMemList:   make([]*cluster.ClusterMember, 0, 5), // Initialize with a capacity of 5
 			BroadCastChannel: make(chan events.ClusterEvent),
-			Mut:              sync.RWMutex{},
 		}
 	}
 	return clusterConfig, existing

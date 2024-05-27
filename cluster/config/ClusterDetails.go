@@ -9,57 +9,57 @@ import (
 )
 
 type ClusterDetails struct {
+	sync.RWMutex
 	ClusterMemList   []*cluster.ClusterMember
 	ClusterName      string
 	ClusterID        string
 	TotalSize        int
 	BroadCastChannel chan events.ClusterEvent
-	Mut              sync.RWMutex
 }
 
-func (cc *ClusterDetails) AddClusterMemberList(member *cluster.ClusterMember) []*cluster.ClusterMember {
-	cc.Mut.Lock()
-	defer cc.Mut.Unlock()
+func (cluster *ClusterDetails) AddClusterMemberList(member *cluster.ClusterMember) []*cluster.ClusterMember {
+	cluster.Lock()
+	defer cluster.Unlock()
 	member.NodeStatus = "HEALTHY"
 	fmt.Println("Discovered Node -> ", member.NodeAddr+":"+member.NodePort)
-	cc.ClusterMemList = append(cc.ClusterMemList, member)
-	return cc.ClusterMemList
+	cluster.ClusterMemList = append(cluster.ClusterMemList, member)
+	return cluster.ClusterMemList
 }
 
-func (cc *ClusterDetails) ListenForBroadcasts() {
+func (cluster *ClusterDetails) ListenForBroadcasts() {
 	for {
 		select {
-		case event := <-cc.BroadCastChannel:
+		case event := <-cluster.BroadCastChannel:
 			if event.ClusterEvent == events.EventTYPE(0) {
-				cc.JoinCluster(event)
+				cluster.JoinCluster(event)
 			} else if event.ClusterEvent == events.EventTYPE(1) {
-				cc.LeaveCluster(event)
+				cluster.LeaveCluster(event)
 			}
 		}
 	}
 }
 
-func (cc *ClusterDetails) JoinCluster(event events.ClusterEvent) {
+func (cluster *ClusterDetails) JoinCluster(event events.ClusterEvent) {
 	fmt.Println("New Node Joined Cluster -> ", event.ClusterMember.NodeID)
-	for _, clusterMember := range cc.ClusterMemList {
+	for _, clusterMember := range cluster.ClusterMemList {
 		broadcast.BroadCastEvents(clusterMember, event.ClusterMember)
 	}
 }
 
-func (cc *ClusterDetails) LeaveCluster(event events.ClusterEvent) {
+func (cluster *ClusterDetails) LeaveCluster(event events.ClusterEvent) {
 	fmt.Println("Node Removed Cluster -> ", event.ClusterMember.NodePort)
 
-	cc.Mut.Lock()
+	cluster.Lock()
 	nodeId := event.ClusterMember.NodePort
-	defer cc.Mut.Unlock()
-	for i, mem := range cc.ClusterMemList {
+	defer cluster.Unlock()
+	for i, mem := range cluster.ClusterMemList {
 		if mem.NodePort == nodeId {
 			// Remove the member from the slice
-			cc.ClusterMemList = append(cc.ClusterMemList[:i], cc.ClusterMemList[i+1:]...)
+			cluster.ClusterMemList = append(cluster.ClusterMemList[:i], cluster.ClusterMemList[i+1:]...)
 		}
 	}
 	fmt.Println("Nodes Remaining.. ")
-	for _, clusterMember := range cc.ClusterMemList {
+	for _, clusterMember := range cluster.ClusterMemList {
 		broadcast.BroadLeaveCastEvents(clusterMember, event.ClusterMember)
 	}
 }
